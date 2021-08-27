@@ -1,54 +1,16 @@
-# arduino-to-nodejs
+# Latent Organism (Creartathon 2021)
 
-This tutorial will walkthrough the process of creating an Arduino IOT device that controls aspects fo a website. In this example the website will simpy display a red block that will fade when a dial on an Arduino is adjusted. 
+This work proposes a process of co-creation between the human and the machine through a balanced interaction and a way of appropriating what we could call an artificial imagination. 
 
-## HTML and JavaScript
+For this experiment, the machine was fed thousands of photos of living organisms. Its property of learning and generalization allows it to converge towards an abstract conception of the idea of organic flesh. It is then possible to navigate in this continuous space of potentiality.   
 
-Create an HTML file called `index.html`. Add the following code:
+The spectators is in control, using the imagination of the machine as clay, as a moldable material. Our sympoietic machine takes the physiological data from the spectator as inputs and then translates it into a generative shape and texture using the latent space of a 3D GAN (Generative Adversarial Network). The human is actively participating in the process since he can manipulate, twist, rotate the physical object to transform the shape.
 
-```javascript
-<!doctype html>
-<html>
-  <head>
+As an incarnation of how humankind continues to externalize itself through technology, this installation relies on technique not only as a collection of tools, but also as an epiphylogenetic memory [Stiegler].
 
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js'></script>
+## Link Node.js and Arduino
 
-    <script>
-
-    var socket = io();
-
-    socket.on('data', function(data) {
-        console.log(data);
-        document.getElementById('sample').style.opacity = data+"%"; 
-    });
-
-    </script>
-
-    <style>
-
-      #sample {
-        background-color: red;
-        width: 300px;
-        height: 300px;
-      }
-
-    </style>
-
-  </head>
-  <body>
-
-    <h1>Communicating from an Arduino to Node.js</h1>
-    <div id="sample"></div>
-
-  </body>
-</html>
-```
-
-The above code creates a webpage with a red square. Whn the dial is turned on the Arduino device, the red square will fade in and out.
-
-## Node.js Server
-
-Before we setup the Node.js server we need to know the name of the serialport your Arduino is attached to. You can find the name of your serialport, it will look something like `/dev/tty.wchusbserialfa1410`. On a Mac using the Terminal and entering the following command:
+Before we setup the Node.js server we need to know the name of the serialport your Arduino is attached to. You can find the name of your serialport, it will look something like `/dev/tty.usbmodem142401`. On a Mac using the Terminal and entering the following command:
 
 ```
 ls /dev/{tty,cu}.*
@@ -59,126 +21,12 @@ On a PC you can use the command line and the following command:
 ```
 chgport
 ```
-
-On my PC when I use the `chgport` command I get the following output:
-
-```
-AUX = \DosDevices\COM1
-COM1 = \Device\Serial0
-COM3 = \Device\Serial2
-```
-
-In my Node.js I would use `COM3` as my serialport string.
-
-If you're not sure which one is your Arduino, just disconnet your Arduino and execute the cpommand again and take note of which port is no longer on the list. 
-
-Or you can find the name in [Arduino Create](https://create.arduino.cc/editor) in the drop down menu used to select your Arduino.
-
-Create a file called `app.js` and add the following code:
-
-```javascript
-var http = require('http');
-var fs = require('fs');
-var index = fs.readFileSync( 'index.html');
-
-var SerialPort = require('serialport');
-const parsers = SerialPort.parsers;
-
-const parser = new parsers.Readline({
-  delimiter: '\r\n'
-});
-
-var port = new SerialPort('/dev/tty.wchusbserialfa1410',{ 
-  baudRate: 9600,
-  dataBits: 8,
-  parity: 'none',
-  stopBits: 1,
-  flowControl: false
-});
-
-port.pipe(parser);
-
-var app = http.createServer(function(req, res) {
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  res.end(index);
-});
-
-var io = require('socket.io').listen(app);
-
-io.on('connection', function(socket) {
-    
-  console.log('Node is listening to port');
-    
-});
-
-parser.on('data', function(data) {
-    
-  console.log('Received data from port: ' + data);
-  io.emit('data', data);
-    
-});
-
-app.listen(3000);
-```
-
-The above code listend for a message from the Arduino over the USD port and then passes a message onto the HTML/JavaScript using Socket.io. 
-
-> Note: Make sure to change the name of the serialport.
-
-## The Arduino
-
-Using [Arduino Create](https://create.arduino.cc/editor) create the following sketch and upload it to your Arduino. 
-
-```csharp
-int percent = 0;
-int prevPercent = 0;
-
-void setup() {
-  Serial.begin( 9600 );
-}
-
-void loop() {
-  
-  percent = round(analogRead(0) / 1024.00 * 100);
-  
-  if(percent != prevPercent) {
-    Serial.println(percent);
-    prevPercent = percent;
-  }
-  
-  delay(100);
-  
-}
-```
-
-The previous code will generate a percentage pased on the dial and pass the number on to the Node.js server using the serialport.
-
-[View the Arduino code on Arduino Create](https://create.arduino.cc/editor/professoradam/da29d7ec-2df5-4528-82ce-817710aadb1a/preview)
-
-You will need to setup the following circuit using your Arduino:
-
-![Tinkercad Circuit](https://raw.githubusercontent.com/codeadamca/arduino-to-nodejs/master/tinkercad-to-nodejs.png)
-
-[View the Circuit on Tinkercad](https://www.tinkercad.com/things/5Siec0jdhZo-arduinotobrowser)
+Modify the port in app.js → var port = new SerialPort() function
 
 ## Launch Application
 
-1. Using [Arduino Create](https://create.arduino.cc/editor) upload the sketch to your Arduino.
+1. Install nodejs with npm
 2. Using the Terminal start your Node.js app using `node app.js`.
 3. Open up a browser and enter the URL `http://localhost:3000/`.
-4. Turn the dial on the Arduino device and watch the red square in the browser.
-
-## Tutorial Requirements:
-
-* [Visual Studio Code](https://code.visualstudio.com/) or [Brackets](http://brackets.io/) (or any code editor)
-* [Arduino Create](https://create.arduino.cc/editor) 
-* [SerialPort NPM](https://www.npmjs.com/package/serialport)
-* [Socket.io](https://socket.io/)
-
-Full tutorial URL: https://codeadam.ca/learning/arduino-to-nodejs.html
-
-<a href="https://codeadam.ca">
-<img src="https://codeadam.ca/images/code-block.png" width="100">
-</a>
 
 
