@@ -1,7 +1,12 @@
 <!doctype html>
 <html>
     <head>
-        
+        <style>
+            * { margin:0; padding:0; } /* to remove the top and left whitespace */
+            html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+            canvas { display:block; } /* To remove the scrollbars */
+        </style>
+        <!-- <link rel="stylesheet" type="text/css" href="styles.css"> -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/94/three.js" integrity="sha512-2qL88PDKCTKudKanf/i4m0b8hsfbzWEuSghP5A1IRm6JfKYtu6TtNUu0DRZNkhxc6U3kI4vYh9lk7tf6B8silA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js" integrity="sha512-c4FE2uNeKCAtchLEpO9yimL8CuifrlEMnORyTNw0TAkGqYpqADT8qX/DG/ASy+F29KUSgEgrPidbNPENW17QFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
         <script src=" https://cdn.rawgit.com/josephg/noisejs/master/perlin.js" crossorigin="anonymous" ></script>
@@ -9,7 +14,6 @@
     </head>
     <body>
         
-        <div id="sample"></div>
         <script>
         
         

@@ -23,6 +23,12 @@ chgport
 ```
 Modify the port in app.js → var port = new SerialPort() function
 
+## Installation
+In the main folder :
+``` bash
+npm install serialport
+```
+
 ## Launch Application
 
 1. Install nodejs with npm
