@@ -1,10 +1,7 @@
-var express = require('express');
 var http = require('http');
 var fs = require('fs');
-var index = fs.readFileSync( 'index.html');
-
-//var server = express(); // better instead
-//app.use(express.static('.'));
+var index = fs.readFileSync('index.html');
+var path = require('path');
 
 // // opencv
 // const spawn = require('child_process').spawn;
@@ -48,19 +45,64 @@ const parser = new parsers.Readline({
     delimiter: '\r\n'
 });
 
-var port = new SerialPort('/dev/tty.usbmodem142401',{ 
-    baudRate: 9600,
-    dataBits: 8,
-    parity: 'none',
-    stopBits: 1,
-    flowControl: false
-});
+// var port = new SerialPort('/dev/tty.usbmodem142401',{ 
+//     baudRate: 9600,
+//     dataBits: 8,
+//     parity: 'none',
+//     stopBits: 1,
+//     flowControl: false
+// });
+// 
+// port.pipe(parser);
 
-port.pipe(parser);
+var app = http.createServer(function(req, response) {
+    var filePath = '.' + req.url;
+    if (filePath == './')
+        filePath = './index.html';
+    console.log('request starting...',filePath);
 
-var app = http.createServer(function(req, res) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end(index);
+    var extname = path.extname(filePath);
+    var contentType = 'text/html';
+    switch (extname) {
+        case '.js':
+            contentType = 'text/javascript';
+            break;
+        case '.css':
+            contentType = 'text/css';
+            break;
+        case '.json':
+            contentType = 'application/json';
+            break;
+        case '.png':
+            contentType = 'image/png';
+            break;      
+        case '.jpg':
+            contentType = 'image/jpg';
+            break;
+        case '.wav':
+            contentType = 'audio/wav';
+            break;
+    }
+
+    fs.readFile(filePath, function(error, content) {
+        if (error) {
+            if(error.code == 'ENOENT'){
+                fs.readFile('./404.html', function(error, content) {
+                    response.writeHead(200, { 'Content-Type': contentType });
+                    response.end(content, 'utf-8');
+                });
+            }
+            else {
+                response.writeHead(500);
+                response.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
+                response.end(); 
+            }
+        }
+        else {
+            response.writeHead(200, { 'Content-Type': contentType });
+            response.end(content, 'utf-8');
+        }
+    });
 });
 
 var io = require('socket.io').listen(app);
@@ -79,5 +121,4 @@ parser.on('data', function(data) {
     
 });
 
-//app.use(express.static('.'));
 app.listen(3000);
