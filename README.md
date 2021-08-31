@@ -1,5 +1,7 @@
 # Latent Organism (Creartathon 2021)
 
+![Alt Text](IMG_9324.gif)
+
 This work proposes a process of co-creation between the human and the machine through a balanced interaction and a way of appropriating what we could call an artificial imagination. 
 
 For this experiment, the machine was fed thousands of photos of living organisms. Its property of learning and generalization allows it to converge towards an abstract conception of the idea of organic flesh. It is then possible to navigate in this continuous space of potentiality.   
@@ -34,5 +36,4 @@ npm install serialport
 1. Install nodejs with npm
 2. Using the Terminal start your Node.js app using `node app.js`.
 3. Open up a browser and enter the URL `http://localhost:3000/`.
-
 
