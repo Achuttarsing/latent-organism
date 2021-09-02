@@ -1,35 +1,37 @@
 <!doctype html>
 <html>
     <head>
-        <style>
-            * { margin:0; padding:0; } /* to remove the top and left whitespace */
-            html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
-            canvas { display:block; } /* To remove the scrollbars */
-        </style>
-        <!-- <link rel="stylesheet" type="text/css" href="styles.css"> -->
-        <script src="three.js"></script>
-        <script src="socket.io.js"></script> 
-        <script src="perlin.js"></script>
-        <script src="threex.universalloader.js"></script>
+        <script src="https://cdn.rawgit.com/mrdoob/three.js/master/build/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
+        <script src="js/OBJLoader.js"></script>
+        <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/94/three.js" integrity="sha512-2qL88PDKCTKudKanf/i4m0b8hsfbzWEuSghP5A1IRm6JfKYtu6TtNUu0DRZNkhxc6U3kI4vYh9lk7tf6B8silA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js" integrity="sha512-c4FE2uNeKCAtchLEpO9yimL8CuifrlEMnORyTNw0TAkGqYpqADT8qX/DG/ASy+F29KUSgEgrPidbNPENW17QFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
+        <script src=" https://cdn.rawgit.com/josephg/noisejs/master/perlin.js" crossorigin="anonymous" ></script>
+
+         <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/shaders/SubsurfaceScatteringShader.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
         <!--<script src=" https://cdn.rawgit.com/jeromeetienne/threex.bubble/blob/master/examples/vendor/three.js/examples/js/shaders/FresnelShader.js" crossorigin="anonymous" ></script> -->
     </head>
     <body>
         
+        <div id="sample"></div>
         <script>
         
         
             // ------------------------------------------------
             // BASIC SETUP
             // ------------------------------------------------
-            
+            const loadermodel = new THREE.OBJLoader();
             
             var socket = io();
             var arduino = 0
             var twisting = -1
             var blobing = -1
+            var mandaring = 0
+            var anemoning = 0
             var iteration = 0
+            var coloring = 0;
             var flag = false
-            const max_twist = 400
+            const max_twist = 200//400
             var goback = false;
             // Create an empty scene
             var scene = new THREE.Scene();
@@ -40,10 +42,69 @@
             var renderer = new THREE.WebGLRenderer({antialias:true});
             // Configure renderer clear color
             renderer.setClearColor("#000000");
+            renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.outputEncoding = THREE.sRGBEncoding;
+
             // Configure renderer size
             renderer.setSize( window.innerWidth, window.innerHeight );
             // Append Renderer to DOM
             document.body.appendChild( renderer.domElement );
+
+
+            // SUBSURFACE SCATTERING 
+
+            scene.add( new THREE.AmbientLight( 0x888888 ) );
+
+            const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.03 );
+            directionalLight.position.set( 0.0, 0.5, 0.5 ).normalize();
+            scene.add( directionalLight );
+
+            const pointLight1 = new THREE.Mesh( new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888888 } ) );
+            pointLight1.add( new THREE.PointLight( 0x888888, 7.0, 300 ) );
+            scene.add( pointLight1 );
+            pointLight1.position.x = 0;
+            pointLight1.position.y = - 50;
+            pointLight1.position.z = 350;
+
+            const pointLight2 = new THREE.Mesh( new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888800 } ) );
+            pointLight2.add( new THREE.PointLight( 0x888800, 1.0, 500 ) );
+            scene.add( pointLight2 );
+            pointLight2.position.x = - 100;
+            pointLight2.position.y = 20;
+            pointLight2.position.z = - 260;
+
+
+
+            const loader = new THREE.TextureLoader();
+            const imgTexture = loader.load( 'https://cdn.rawgit.com/mrdoob/three.js/master/examples/models/fbx/white.jpg' );
+            //const thicknessTexture = loader.load( 'https://cdn.rawgit.com/mrdoob/three.js/master/examples/models/fbx/bunny_thickness.jpg' );
+            const thicknessTexture = loader.load('biopsy.png')
+            imgTexture.wrapS = imgTexture.wrapT = THREE.RepeatWrapping;
+
+            const shader = THREE.SubsurfaceScatteringShader;
+            const uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+            uniforms[ 'map' ].value = imgTexture;
+
+            uniforms[ 'diffuse' ].value = new THREE.Vector3( 1, 0, 1 ); //  color : 1.0, 0.2, 0.2
+            uniforms[ 'shininess' ].value = 500;
+
+            uniforms[ 'thicknessMap' ].value = thicknessTexture;
+            uniforms[ 'thicknessColor' ].value = new THREE.Vector3( 0.5, 0.3, 0.0 );
+            uniforms[ 'thicknessDistortion' ].value = 0.1;
+            uniforms[ 'thicknessAmbient' ].value = 0.4;
+            uniforms[ 'thicknessAttenuation' ].value = 0.8;
+            uniforms[ 'thicknessPower' ].value = 2.0;
+            uniforms[ 'thicknessScale' ].value = 16.0;
+
+
+            const material = new THREE.ShaderMaterial( {
+                uniforms: uniforms,
+                vertexShader: shader.vertexShader,
+                fragmentShader: shader.fragmentShader,
+                lights: true
+            } );
+            material.extensions.derivatives = true; 
             
 
             
@@ -51,74 +112,233 @@
             // FUN STARTS HERE
             // ------------------------------------------------
             // Create a Cube Mesh with basic material
-            const geometry = new THREE.BoxGeometry(20, 20, 20, 20, 20, 20); 
-            const material = new THREE.MeshNormalMaterial({ wireframe: false } ); // 
+            const geometry = new THREE.SphereGeometry(1, 128, 128);// new THREE.BoxGeometry(20, 20, 20, 20, 20, 20); 
+            //const material = new THREE.MeshNormalMaterial({ wireframe: false } ); // 
             const cube = new THREE.Mesh(geometry, material); 
             scene.add(cube);
             
             
             
             // MORPHO BLOB
+
+                function randomNumber(n) { 
+                return Math.floor( Math.random() * n ); 
+            } 
+
+            var functions = [anemone, fire, flower, blob, futur]; 
             
             
             var peaking = 0.1
             var emancipacing = 1
+            var peaking2 = 0.1
+            var emancipacing2 = 1
             var max_peaking = 2
             var max_emancipating = 3
-            var mandaring = 0
             var kx = 3
             var ky = 3
             var seuil_trigg = 600
+
             
-            var blob = function() {
+            function anemone() {
+
 
                 var k = 3;
-                    var time = performance.now() * 0.0005;
-                for (var i = 0; i < cube.geometry.faces.length; i++) {
-                    var uv = cube.geometry.faceVertexUvs[0][i]; //faceVertexUvs is a huge arrayed stored inside of another array
-                    var f = cube.geometry.faces[i];
-                    var p = cube.geometry.vertices[f.a];//take the first vertex from each face
-                    
-                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[0].x*k, uv[0].y*k, time)); // enlever pour pico 1 + 0.3
-                    // effet expansif picos
-                    //p.add(p.clone().normalize().multiplyScalar(0.1 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
-                }
+                var time = performance.now() * 0.0005;
 
+                var vertices = cube.geometry.attributes.position.array;
+            
+                for (var i = 0; i <= vertices.length; i++) {
+
+                    var uv = geometry.getAttribute( 'uv' ).array;
+
+                    emancipacing = 1
+                    peaking2 = 0.1
+
+                    const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    //p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i]*k, uv[i]*k, time)); 
+                    p.normalize().multiplyScalar(emancipacing2+peaking2*noise.perlin3(uv[i]*k, uv[i]*k, time)); 
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
 
 
                 cube.geometry.verticesNeedUpdate = true; 
                 cube.geometry.normalsNeedUpdate = true;
-                // ajouter la texture effet 3D map
-                cube.geometry.computeVertexNormals();
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+
+            }
+
+             function fire() {
+
+                var k = 3;
+                var time = performance.now() * 0.0005;
+
+                var vertices = cube.geometry.attributes.position.array;
+            
+                for (var i = 0; i <= vertices.length; i++) {
+
+                    var uv = geometry.getAttribute( 'uv' ).array;
+                    // (uv[0].x*k, uv[0].y*k,
+
+                    x=vertices[ i ] ;
+                    y=vertices[ i+1 ] ;
+                    z=vertices[ i+2 ] ; 
+                    const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    //p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(p.x*k, p.y*k, time)); 
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i]*k, uv[i]*k, time)); 
+                    p.add(p.clone().normalize().multiplyScalar(2 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
+
+
+                cube.geometry.verticesNeedUpdate = true; 
                 cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+
+            }
+
+            function flower() {
+
+                var k = 3;
+                var time = performance.now() * 0.0005;
+
+                var vertices = cube.geometry.attributes.position.array;
+            
+                for (var i = 0; i <= vertices.length; i++) {
+
+                    var uv = geometry.getAttribute( 'uv' ).array;
+                    // (uv[0].x*k, uv[0].y*k,
+
+                    const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    //p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(p.x*k, p.y*k, time)); 
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i * 3]*k, uv[i * 3 + 1]*k, time)); 
+                    //p.add(p.clone().normalize().multiplyScalar(2 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
+
+
+                cube.geometry.verticesNeedUpdate = true; 
+                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+
+            }
+
+             function futur() {
+
+                var k = 3;
+                var time = performance.now() * 0.0005;
+
+                var vertices = cube.geometry.attributes.position.array;
+            
+                for (var i = 0; i <= vertices.length; i++) {
+
+                    var uv = cube.geometry.getAttribute( 'uv' ).array;
+                    // (uv[0].x*k, uv[0].y*k,
+
+                    const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    //p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(p.x*k, p.y*k, time)); 
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i * 2]*k, uv[i * 2 ]*k, time)); 
+                    //p.add(p.clone().normalize().multiplyScalar(2 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
+
+
+                cube.geometry.verticesNeedUpdate = true; 
+                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+
+            }
+
+
+           function blob() {
+            
+
+                var k = 3;
+                var time = performance.now() * 0.0005;
+                var vertices = cube.geometry.attributes.position.array;
+
+            
+                for (var i = 0; i <= vertices.length/3; i++) {
+
+
+                    const p = new THREE.Vector3( vertices[i *3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(p.x * k + time, p.y * k, p.z * k)); 
+                    //p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i * 2]*k, uv[i * 2 ]*k, time)); 
+                    //p.add(p.clone().normalize().multiplyScalar(2 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
+
+
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+                cube.geometry.verticesNeedUpdate = true; 
+                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.verticesNeedUpdate = true; 
 
             }
             
             var mandariane = function(kx, ky) {
 
-                var time = performance.now() * 0.0005;
-                for (var i = 0; i < cube.geometry.faces.length; i++) {
-                    var uv = cube.geometry.faceVertexUvs[0][i]; //faceVertexUvs is a huge arrayed stored inside of another array
-                    var f = cube.geometry.faces[i];
-                    var p = cube.geometry.vertices[f.a];//take the first vertex from each face
-                    
-                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[0].x*kx, uv[0].y*ky, time)); // enlever pour pico 1 + 0.3
-                    // effet expansif picos
-                    //p.add(p.clone().normalize().multiplyScalar(0.1 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
-                }
+                
 
+                //var k = 3;
+                var time = performance.now() * 0.0005;
+
+                var vertices = cube.geometry.attributes.position.array;
+            
+                for (i = 0; i <= vertices.length; i++) {
+                    x=vertices[ i ] ;
+                    y=vertices[ i+1 ] ;
+                    z=vertices[ i+2 ] ; 
+                    const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(p.x*kx, p.y*ky, time)); 
+                    //p.add(p.clone().normalize().multiplyScalar(2 * noise.perlin3(p.x * k, p.y * k, p.z * k)));
+
+                    vertices[i * 3] = p.x;
+                    vertices[i * 3 + 1] = p.y;
+                    vertices[i * 3 + 2] = p.z;
+                }
 
 
                 cube.geometry.verticesNeedUpdate = true; 
                 cube.geometry.normalsNeedUpdate = true;
-                // ajouter la texture effet 3D map
-                cube.geometry.computeVertexNormals();
-                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+
+
 
             }
 
+
+
+        // TEXTURE CHANGE 
+
+        function opaque(){
+            uniforms[ 'thicknessDistortion' ].value+=0.001;
+            //uniforms[ 'thicknessColor' ].value.z+=1;
+        }
+
             
             // FLEXION : TWIST()
+            
             var twistAmount=0;
             const quaternion = new THREE.Quaternion(); 
             quaternion.setFromAxisAngle( 
@@ -129,31 +349,58 @@
             vector.applyQuaternion(quaternion);
             var twist_right = function(geometry) {
               const quaternion = new THREE.Quaternion();
-              for (let i = 0; i < geometry.vertices.length; i++) {
+
+              var vertices = geometry.attributes.position.array;
+
+              for (let i = 0; i < vertices.length; i++) {
                 // a single vertex Y position
-                const yPos = geometry.vertices[i].y;
+                const yPos = vertices[i * 3 + 1] // geometry.vertices[i].y;
+                //const twistAmount = 2;
                 twistAmount = 2;
                 const upVec = new THREE.Vector3(0, 1, 0);
                 quaternion.setFromAxisAngle(upVec, (Math.PI / 180) * (yPos / twistAmount));
-                geometry.vertices[i].applyQuaternion(quaternion);
+                const p = new THREE.Vector3( vertices[i *3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                p.applyQuaternion(quaternion);
+                vertices[i * 3] = p.x;
+                vertices[i * 3 + 1] = p.y;
+                vertices[i * 3 + 2] = p.z;
+                //geometry.vertices[i].applyQuaternion(quaternion);
               }
               // tells Three.js to re-render this mesh
-              geometry.verticesNeedUpdate = true;
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+                cube.geometry.verticesNeedUpdate = true; 
+                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.verticesNeedUpdate = true;
             }
+
+            
             var twist_left = function(geometry) {
                   const quaternion = new THREE.Quaternion();
-                  for (let i = 0; i < geometry.vertices.length; i++) {
-                    // a single vertex Y position
-                    const yPos = geometry.vertices[i].y;
-                    const twistAmount = 2;
-                    const upVec = new THREE.Vector3(0, 1, 0);
-                    quaternion.setFromAxisAngle(upVec, (-Math.PI / 180) * (yPos / twistAmount));
-                    geometry.vertices[i].applyQuaternion(quaternion);
-                  }
-                  // tells Three.js to re-render this mesh
-                  geometry.verticesNeedUpdate = true;
-                }
-            console.log(geometry)
+                   var vertices = geometry.attributes.position.array;
+
+              for (let i = 0; i < vertices.length; i++) {
+                // a single vertex Y position
+                const yPos = vertices[i * 3 + 1] // geometry.vertices[i].y;
+                //const twistAmount = 2;
+                twistAmount = 2;
+                const upVec = new THREE.Vector3(0, 1, 0);
+                quaternion.setFromAxisAngle(upVec, (-Math.PI / 180) * (yPos / twistAmount));
+                const p = new THREE.Vector3( vertices[i *3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
+                p.applyQuaternion(quaternion);
+                vertices[i * 3] = p.x;
+                vertices[i * 3 + 1] = p.y;
+                vertices[i * 3 + 2] = p.z;
+                //geometry.vertices[i].applyQuaternion(quaternion);
+              }
+              // tells Three.js to re-render this mesh
+                cube.geometry.attributes.position.needsUpdate = true;
+                cube.geometry.computeVertexNormals(); 
+                cube.geometry.verticesNeedUpdate = true; 
+                cube.geometry.normalsNeedUpdate = true;
+                cube.geometry.verticesNeedUpdate = true;
+                } 
+  
             
             /////////////////////////////////////////// RENDER LOOP ///////////////////////////////////////////
             var render = function () {
@@ -162,19 +409,39 @@
               if(twisting == 0 && iteration<max_twist && !goback){
                   twist_right(geometry)
                   iteration+=1
+                  console.log("twist1", iteration, twisting, twistAmount)
+                  //twist_left(geometry)
               } 
               else if(flag==false && iteration!=0 && goback){
+                console.log("twist2", iteration)
                 twist_left(geometry)
                 iteration-=1;
                 if(!iteration)
                     goback=false;
               }
+              else if (twisting == 1) {
+                  //twist_left(geometry)
+                  console.log("twist2")
+              }
               if (blobing == 1) {
                 blob();
+                
+                /*
+                var n =randomNumber( functions.length )
+                functions[n]
+                functions[n]()
+                */
+
               }
               if (mandaring == 1) {
                   mandariane(kx,ky);
                 }
+              if (anemoning == 1) {
+                  anemone();
+              }
+              if(coloring){
+                opaque();
+              }
               cube.rotation.y += 0.005
               renderer.render(scene, camera);
             };
@@ -186,7 +453,32 @@
 
                 
                 arduino = eval(data)
+                //arduino = [randomNumber(1000),randomNumber(1000),randomNumber(1000),randomNumber(1000)]
+                console.log(arduino)
                 flag = false
+
+                if (arduino[4] < seuil_trigg){
+                    coloring = 1
+                    flag = true
+                } 
+                if (arduino[3] < seuil_trigg){
+                    /*
+                    anemoning = 1
+                    peaking += 0.1
+                    emancipacing +=0.01
+                    emancipacing = Math.min(emancipacing, 2);
+                    peaking = Math.min(peaking, max_peaking);
+                    flag = true */
+                } 
+                if (arduino[2] < seuil_trigg) {
+                    mandaring = 1
+                    emancipacing += 0.01
+                    peaking += 0.1
+                    emancipacing = Math.min(emancipacing, max_emancipating);
+                    peaking = Math.min(peaking, max_peaking);
+                    kx += 2
+                    flag = true
+                } 
                 if (arduino[1] < seuil_trigg) {
                     if(iteration==0){
                         setTimeout(function(){ 
@@ -194,13 +486,6 @@
                     }
 
                     twisting = 0
-                    flag = true
-                } 
-                if (arduino[2] < seuil_trigg) {
-                    mandaring = 1
-                    emancipacing += 0.01
-                    peaking += 0.1
-                    kx += 2
                     flag = true
                 } 
                 if (arduino[0] < seuil_trigg){
@@ -214,12 +499,13 @@
                 
                 if(flag==false) {
                     twisting = -1
-                    emancipacing = Math.max(emancipacing-0.01, 1);
-                    peaking = Math.max(peaking-0.01, 0.1);
+                    diminution = 0.01
+                    emancipacing = Math.max(emancipacing-diminution, 1); 
+                    peaking = Math.max(peaking-diminution, 0.1); 
                     kx = Math.max(kx-0.1, 3);
+                    peaking2=0
 
                 }
-                    
             });
             // socket.on('user_position', function(data) {
             //     
