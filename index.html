@@ -35,7 +35,7 @@
             var flowering = 0;
             var futuring = 0;
             var flag = false
-            const max_twist = 400//400
+            const max_twist = 1000//400
             var goback = false;
             // Create an empty scene
             var scene = new THREE.Scene();
@@ -345,6 +345,31 @@
           }
           if(nb==2)
             uniforms[ 'diffuse' ].value = new THREE.Vector3( 0, 1, 0.7 ); //green
+
+          changeco=-1;
+        }
+
+        function patternChange(){
+            var nb = randomNumber(13)
+
+            console.log(nb, loader)
+
+
+            switch (nb){
+                case 0 : uniforms[ 'thicknessMap' ].value = loader.load('biopsy.png'); break; 
+                case 1 :  uniforms[ 'thicknessMap' ].value = loader.load('bunny_thickness.jpg'); break;
+                case 2 : uniforms[ 'thicknessMap' ].value = loader.load('waves.jpg'); break;
+                case 3 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot1.jpg'); break;
+                case 4 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot3.jpg'); break;
+                case 5 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot4.jpg'); break;
+                case 6 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot5.jpg'); break;
+                case 7 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot6.jpg'); break;
+                case 8 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot7.jpg'); break;
+                case 9 : uniforms[ 'thicknessMap' ].value = loader.load('buttercup.png'); break;
+                case 10 : uniforms[ 'thicknessMap' ].value = loader.load('celery.jpg'); break;
+                case 11 : uniforms[ 'thicknessMap' ].value = loader.load('cells.jpg'); break;
+                case 12 : uniforms[ 'thicknessMap' ].value = loader.load('bacteria.jpg'); break;
+            }
         }
 
 
@@ -492,7 +517,7 @@
                     blobing = 1
                     flag = true
                 }
-                if (arduino[5] < seuil_trigg){
+                if (arduino[5] < seuil_trigg && !changeco){
                     changeco = 1
                     flag = true
                 }
@@ -538,7 +563,6 @@
                 }
 
                 if(flag==false) {
-                    changeco = 0
                     coloring = 0
                     twisting = -1
                     diminution = 0.01
