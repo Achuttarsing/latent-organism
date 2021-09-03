@@ -7,7 +7,7 @@
         <script src="three.min.js"></script>
 
          <script src="SubsurfaceScatteringShader.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+         <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/curves/CurveExtras.js"></script>
         <!--<script src=" https://cdn.rawgit.com/jeromeetienne/threex.bubble/blob/master/examples/vendor/three.js/examples/js/shaders/FresnelShader.js" crossorigin="anonymous" ></script> -->
     </head>
     <body>
@@ -32,10 +32,11 @@
             var iteration = 0
             var coloring = 0;
             var changeco = 0;
+            var changepat = 0;
             var flowering = 0;
             var futuring = 0;
             var flag = false
-            const max_twist = 1000//400
+            const max_twist = 2000//400
             var goback = false;
             // Create an empty scene
             var scene = new THREE.Scene();
@@ -63,14 +64,14 @@
             directionalLight.position.set( 0.0, 0.5, 0.5 ).normalize();
             scene.add( directionalLight );
 
-            const pointLight1 = new THREE.Mesh( new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888888 } ) );
+            const pointLight1 = new THREE.Mesh()// new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888888 } ) );
             pointLight1.add( new THREE.PointLight( 0x888888, 7.0, 300 ) );
             scene.add( pointLight1 );
             pointLight1.position.x = 0;
             pointLight1.position.y = - 50;
             pointLight1.position.z = 350;
 
-            const pointLight2 = new THREE.Mesh( new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888800 } ) );
+            const pointLight2 = new THREE.Mesh()// new THREE.SphereGeometry( 4, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x888800 } ) );
             pointLight2.add( new THREE.PointLight( 0x888800, 1.0, 500 ) );
             scene.add( pointLight2 );
             pointLight2.position.x = - 100;
@@ -80,9 +81,9 @@
 
 
             const loader = new THREE.TextureLoader();
-            const imgTexture = loader.load( 'white.jpg' );
-            const thicknessTexture = loader.load( 'bunny_thickness.jpg' );
-            //const thicknessTexture = loader.load('biopsy.png')
+            const imgTexture = loader.load( 'textures/white.jpg' );
+            const thicknessTexture = loader.load( 'textures/bunny_thickness.jpg' );
+            //const thicknessTexture = loader.load('textures/biopsy.png')
             imgTexture.wrapS = imgTexture.wrapT = THREE.RepeatWrapping;
 
             const shader = THREE.SubsurfaceScatteringShader;
@@ -116,12 +117,13 @@
             // FUN STARTS HERE
             // ------------------------------------------------
             // Create a Cube Mesh with basic material
+            
             const geometry = new THREE.SphereGeometry(1, 128, 128);// new THREE.BoxGeometry(20, 20, 20, 20, 20, 20);
             //const material = new THREE.MeshNormalMaterial({ wireframe: false } ); //
             const cube = new THREE.Mesh(geometry, material);
-            scene.add(cube);
+            scene.add(cube); 
 
-
+    
 
             // MORPHO BLOB
 
@@ -156,7 +158,7 @@
                     var uv = geometry.getAttribute( 'uv' ).array;
 
                     const p = new THREE.Vector3( vertices[i * 3],vertices[i * 3 + 1], vertices[i * 3 + 2]);
-                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i]*k, uv[i]*k, time));
+                    p.normalize().multiplyScalar(emancipacing+peaking*noise.perlin3(uv[i]*5, uv[i]*5, time));
                     //p.normalize().multiplyScalar(emancipacing2+peaking2*noise.perlin3(uv[i]*k, uv[i]*k, time));
 
                     vertices[i * 3] = p.x;
@@ -347,6 +349,8 @@
             uniforms[ 'diffuse' ].value = new THREE.Vector3( 0, 1, 0.7 ); //green
 
           changeco=-1;
+
+          setTimeout(function(){changeco=0; }, 10000);
         }
 
         function patternChange(){
@@ -356,26 +360,30 @@
 
 
             switch (nb){
-                case 0 : uniforms[ 'thicknessMap' ].value = loader.load('biopsy.png'); break; 
-                case 1 :  uniforms[ 'thicknessMap' ].value = loader.load('bunny_thickness.jpg'); break;
-                case 2 : uniforms[ 'thicknessMap' ].value = loader.load('waves.jpg'); break;
-                case 3 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot1.jpg'); break;
-                case 4 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot3.jpg'); break;
-                case 5 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot4.jpg'); break;
-                case 6 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot5.jpg'); break;
-                case 7 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot6.jpg'); break;
-                case 8 : uniforms[ 'thicknessMap' ].value = loader.load('mandelbrot7.jpg'); break;
-                case 9 : uniforms[ 'thicknessMap' ].value = loader.load('buttercup.png'); break;
-                case 10 : uniforms[ 'thicknessMap' ].value = loader.load('celery.jpg'); break;
-                case 11 : uniforms[ 'thicknessMap' ].value = loader.load('cells.jpg'); break;
-                case 12 : uniforms[ 'thicknessMap' ].value = loader.load('bacteria.jpg'); break;
+                case 0 : uniforms[ 'thicknessMap' ].value = loader.load('textures/biopsy.png'); break; 
+                case 1 :  uniforms[ 'thicknessMap' ].value = loader.load('textures/bunny_thickness.jpg'); break;
+                case 2 : uniforms[ 'thicknessMap' ].value = loader.load('textures/waves.jpg'); break;
+                case 3 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot1.jpg'); break;
+                case 4 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot3.jpg'); break;
+                case 5 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot4.jpg'); break;
+                case 6 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot5.jpg'); break;
+                case 7 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot6.jpg'); break;
+                case 8 : uniforms[ 'thicknessMap' ].value = loader.load('textures/mandelbrot7.jpg'); break;
+                case 9 : uniforms[ 'thicknessMap' ].value = loader.load('textures/buttercup.png'); break;
+                case 10 : uniforms[ 'thicknessMap' ].value = loader.load('textures/celery.jpg'); break;
+                case 11 : uniforms[ 'thicknessMap' ].value = loader.load('textures/cells.jpg'); break;
+                case 12 : uniforms[ 'thicknessMap' ].value = loader.load('textures/bacteria.jpg'); break;
             }
+
+            changepat= -1
+
+            setTimeout(function(){changepat=0; }, 10000);
         }
 
 
             // FLEXION : TWIST()
 
-            var twistAmount=0;
+            var twistAmount=2;
             const quaternion = new THREE.Quaternion();
             quaternion.setFromAxisAngle(
               new THREE.Vector3(0, 1, 0),
@@ -447,21 +455,13 @@
                 nbr ++
                   twist_right(geometry)
                   iteration+=1
-                  console.log("twist1", iteration, twisting, twistAmount)
-                  //twist_left(geometry)
               }
               else if(flag==false && iteration!=0 && goback){
                 nbr ++
-                console.log("twist2", iteration)
                 twist_left(geometry)
                 iteration-=1;
                 if(!iteration)
                     goback=false;
-              }
-              else if (twisting == 1 && nbr <= 2) {
-                nbr ++
-                  //twist_left(geometry)
-                  console.log("twist2")
               }
               if (blobing == 1) {
                 nbr ++
@@ -488,7 +488,11 @@
               }
               if(changeco==1 && nbr <= 2){
                 nbr ++
-                colorChange(); // ninon todo
+                colorChange(); 
+              }
+              if(changepat==1 && nbr <= 2){
+                nbr ++
+                patternChange(); 
               }
               if(flowering==1 && nbr <= 2){
                 nbr ++
@@ -521,6 +525,11 @@
                     changeco = 1
                     flag = true
                 }
+/*
+                if (arduino[0] < seuil_trigg && !changepat){
+                    changepat = 1
+                    flag = true
+                } */
 
                 if (arduino[4] < seuil_trigg){
                     coloring = 1
@@ -547,7 +556,7 @@
                 if (arduino[1] < seuil_trigg) {
                     if(iteration==0){
                         setTimeout(function(){
-                            goback=true; }, 3000);
+                            goback=true; }, 10000);
                     }
 
                     twisting = 0
